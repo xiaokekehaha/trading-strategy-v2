@@ -1,0 +1,14 @@
+data:
+  path: "data/raw/prices.csv"
+  start_date: "2018-01-01"
+  end_date: "2023-12-31"
+
+optimization:
+  risk_free_rate: 0.02
+  target_return: 0.10
+
+mcmc:
+  draws: 10000
+  chains: 4
+  tune: 1000
+  random_seed: 42

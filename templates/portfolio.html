@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>资产组合优化</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .result-card {
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            height: 400px;
+            margin: 20px 0;
+        }
+        .stats-table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <ul class="nav nav-pills mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" href="/">股票组合</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/traditional">传统资产</a>
+            </li>
+        </ul>
+
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">资产组合优化系统</h2>
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card result-card">
+                    <div class="card-body">
+                        <h5 class="card-title">优化参数设置</h5>
+                        <form id="optimizeForm">
+                            <div class="mb-3">
+                                <label class="form-label">股票代码 (用逗号分隔)</label>
+                                <input type="text" name="symbols" class="form-control" 
+                                       value="AAPL,MSFT,GOOGL,AMZN,META" required>
+                                <small class="form-text text-muted">例如: AAPL,MSFT,GOOGL</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">回溯期(年)</label>
+                                <input type="number" name="lookback_years" class="form-control" 
+                                       value="5" min="1" max="10" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">目标收益率 (%)</label>
+                                <input type="number" step="0.1" name="target_return" 
+                                       class="form-control" value="10.0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">无风险利率 (%)</label>
+                                <input type="number" step="0.1" name="risk_free_rate" 
+                                       class="form-control" value="2.0" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">开始优化</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6" id="statsCard" style="display: none;">
+                <div class="card result-card">
+                    <div class="card-body">
+                        <h5 class="card-title">优化结果摘要</h5>
+                        <table class="table stats-table">
+                            <tbody id="statsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 在参数设置卡片下方添加进度条 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="progress mt-3" id="progressBar" style="display: none; height: 25px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                         role="progressbar" 
+                         aria-valuenow="0" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100" 
+                         style="width: 0%">
+                        <span id="progressText" style="font-size: 14px; font-weight: bold;">0%</span>
+                    </div>
+                </div>
+                <div id="progressStatus" class="text-center mt-2" style="display: none;">
+                    <small class="text-muted">正在进行投资组合优化计算...</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 可视化图表 -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card result-card">
+                    <div class="card-body">
+                        <h5 class="card-title">有效前沿</h5>
+                        <div id="efficient_frontier" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card result-card">
+                    <div class="card-body">
+                        <h5 class="card-title">最优权重配置</h5>
+                        <div id="weights_pie" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 在图表后添加调仓建议部分 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">调仓建议</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="rebalanceTable">
+                                <thead>
+                                    <tr>
+                                        <th>股票</th>
+                                        <th>名称</th>
+                                        <th>操作</th>
+                                        <th>当前权重</th>
+                                        <th>目标权重</th>
+                                        <th>调整幅度</th>
+                                        <th>调整原因</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加股票分析部分 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">股票池分析</h5>
+                        <div id="stockAnalysis"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let progressInterval;
+        
+        function startProgress() {
+            document.getElementById('progressBar').style.display = 'block';
+            progressInterval = setInterval(updateProgress, 500);
+        }
+        
+        function stopProgress() {
+            clearInterval(progressInterval);
+            document.getElementById('progressBar').style.display = 'none';
+        }
+        
+        async function updateProgress() {
+            try {
+                const response = await fetch('/progress');
+                const data = await response.json();
+                const progressBar = document.querySelector('.progress-bar');
+                const progressText = document.getElementById('progressText');
+                
+                progressBar.style.width = `${data.progress}%`;
+                progressBar.setAttribute('aria-valuenow', data.progress);
+                progressText.textContent = `${data.progress}%`;
+                
+                if (data.progress >= 100) {
+                    stopProgress();
+                }
+            } catch (error) {
+                console.error('Error fetching progress:', error);
+            }
+        }
+        
+        function plotEfficientFrontier(data) {
+            const vols = data.volatilities;
+            const rets = data.returns;
+            const sharpes = data.sharpes;
+            
+            // 所有采样点
+            const scatter = {
+                x: vols,
+                y: rets,
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 8,
+                    color: sharpes,
+                    colorscale: 'Viridis',
+                    showscale: true,
+                    colorbar: {title: '夏普比率'}
+                },
+                name: '采样组合'
+            };
+            
+            // 最优点
+            const optimalIdx = sharpes.indexOf(Math.max(...sharpes));
+            const optimal = {
+                x: [vols[optimalIdx]],
+                y: [rets[optimalIdx]],
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 15,
+                    symbol: 'star',
+                    color: 'red'
+                },
+                name: '最优组合'
+            };
+            
+            const layout = {
+                title: '投资组合有效前沿',
+                xaxis: {
+                    title: '年化波动率',
+                    tickformat: '.1%'
+                },
+                yaxis: {
+                    title: '年化收益率',
+                    tickformat: '.1%'
+                },
+                template: 'plotly_white',
+                showlegend: true
+            };
+            
+            Plotly.newPlot('efficient_frontier', [scatter, optimal], layout);
+        }
+        
+        function plotWeightsPie(data) {
+            const weights = data.weights;
+            const assets = data.assets;
+            
+            // 过滤掉小权重
+            const threshold = 0.01;
+            const significantWeights = weights.filter(w => w >= threshold);
+            const significantAssets = assets.filter((_, i) => weights[i] >= threshold);
+            
+            const trace = {
+                values: significantWeights,
+                labels: significantAssets,
+                type: 'pie',
+                hole: 0.3,
+                textinfo: 'label+percent',
+                textposition: 'inside',
+                insidetextorientation: 'radial'
+            };
+            
+            const layout = {
+                title: '最优资产配置权重',
+                annotations: [{
+                    text: '权重配置',
+                    showarrow: false,
+                    font: {size: 20},
+                    x: 0.5,
+                    y: 0.5
+                }],
+                showlegend: false
+            };
+            
+            Plotly.newPlot('weights_pie', [trace], layout);
+        }
+        
+        function updateStats(stats) {
+            const statsTable = document.getElementById('statsTable');
+            statsTable.innerHTML = `
+                <tr>
+                    <td>预期年化收益率</td>
+                    <td>${(stats.expected_return).toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td>年化波动率</td>
+                    <td>${(stats.volatility).toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td>夏普比率</td>
+                    <td>${(stats.sharpe_ratio).toFixed(2)}</td>
+                </tr>
+            `;
+            document.getElementById('statsCard').style.display = 'block';
+        }
+
+        document.getElementById('optimizeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            try {
+                startProgress();
+                
+                // 将FormData转换为JSON
+                const jsonData = {};
+                formData.forEach((value, key) => {
+                    jsonData[key] = value;
+                });
+                
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    stopProgress();
+                    return;
+                }
+                
+                plotEfficientFrontier(data.frontier_data);
+                plotWeightsPie(data.weights_data);
+                updateStats(data.stats);
+                updateRebalanceSuggestions(data.rebalance_suggestions);
+                updateStockAnalysis(data.analysis);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('优化过程中出现错误，请重试');
+            } finally {
+                stopProgress();
+            }
+        });
+
+        function updateRebalanceSuggestions(suggestions) {
+            const tbody = document.querySelector('#rebalanceTable tbody');
+            tbody.innerHTML = suggestions.map(s => `
+                <tr>
+                    <td>${s.symbol}</td>
+                    <td>${s.name}</td>
+                    <td class="${s.action === '买入' ? 'text-success' : 'text-danger'}">${s.action}</td>
+                    <td>${(s.current_weight * 100).toFixed(2)}%</td>
+                    <td>${(s.target_weight * 100).toFixed(2)}%</td>
+                    <td>${(s.adjustment * 100).toFixed(2)}%</td>
+                    <td>${s.reason}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStockAnalysis(analysis) {
+            const analysisDiv = document.getElementById('stockAnalysis');
+            
+            // 创建股票基本面表格
+            let html = '<div class="table-responsive"><table class="table table-sm">';
+            html += `
+                <thead>
+                    <tr>
+                        <th>股票</th>
+                        <th>行业</th>
+                        <th>年化收益率</th>
+                        <th>年化波动率</th>
+                        <th>夏普比率</th>
+                        <th>市盈率</th>
+                        <th>股息率</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            for (const symbol of Object.keys(analysis.stats)) {
+                const stats = analysis.stats[symbol];
+                const annual_return = analysis.annual_returns[symbol];
+                const annual_vol = analysis.annual_volatility[symbol];
+                const sharpe = analysis.sharpe_ratios.find(s => s.symbol === symbol).sharpe;
+                
+                html += `
+                    <tr>
+                        <td>${symbol}</td>
+                        <td>${stats.industry}</td>
+                        <td>${(annual_return * 100).toFixed(2)}%</td>
+                        <td>${(annual_vol * 100).toFixed(2)}%</td>
+                        <td>${sharpe.toFixed(2)}</td>
+                        <td>${stats.pe_ratio.toFixed(2)}</td>
+                        <td>${(stats.dividend_yield * 100).toFixed(2)}%</td>
+                    </tr>
+                `;
+            }
+            
+            html += '</tbody></table></div>';
+            analysisDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html> 
