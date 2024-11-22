@@ -1,0 +1,30 @@
+{
+  "version": 5,
+  "timestamp": "2024-11-19T17:30:43.599560",
+  "symbols": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "META"
+  ],
+  "weights": {
+    "AAPL": 0.15671170988679675,
+    "MSFT": 0.031470521269050616,
+    "GOOGL": 0.02072388521146986,
+    "AMZN": 0.032317038500849805,
+    "META": 0.7587768451318331
+  },
+  "parameters": {
+    "risk_free_rate": 2.0,
+    "target_return": 10.0,
+    "lookback_years": 5,
+    "optimizer_type": "bayesian"
+  },
+  "metrics": {
+    "expected_return": 0.3037850303971337,
+    "volatility": 0.3890991838341788,
+    "sharpe_ratio": 0.7293385393428979
+  },
+  "optimizer_type": "bayesian"
+}

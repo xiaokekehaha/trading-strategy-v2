@@ -38,6 +38,31 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">历史优化版本</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="versionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>版本</th>
+                                        <th>时间</th>
+                                        <th>优化方法</th>
+                                        <th>股票数量</th>
+                                        <th>夏普比率</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-md-6">
                 <div class="card result-card">
@@ -64,6 +89,19 @@
                                 <label class="form-label">无风险利率 (%)</label>
                                 <input type="number" step="0.1" name="risk_free_rate" 
                                        class="form-control" value="2.0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">优化方法</label>
+                                <select name="optimizer_type" class="form-control" required>
+                                    <option value="bayesian">贝叶斯优化</option>
+                                    <option value="random_forest">随机森林优化</option>
+                                    <option value="xgboost">XGBoost优化</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    贝叶斯优化: 适合小规模资产组合，考虑不确定性<br>
+                                    随机森林优化: 适合大规模资产，考虑非线性关系<br>
+                                    XGBoost优化: 适合高频数据，考虑市场趋势
+                                </small>
                             </div>
                             <button type="submit" class="btn btn-primary">开始优化</button>
                         </form>
@@ -157,6 +195,19 @@
                         <h5 class="card-title">股票池分析</h5>
                         <div id="stockAnalysis"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加版本比较模态框 -->
+        <div class="modal fade" id="compareModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">版本比较</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="compareContent"></div>
                 </div>
             </div>
         </div>
@@ -400,6 +451,181 @@
             html += '</tbody></table></div>';
             analysisDiv.innerHTML = html;
         }
+
+        // 页面加载时获取版本列表
+        async function loadVersions() {
+            try {
+                const response = await fetch('/versions');
+                const versions = await response.json();
+                updateVersionsTable(versions);
+                
+                // 加载最新版本的数据
+                if (versions.length > 0) {
+                    await loadVersion(versions[0].version);
+                }
+            } catch (error) {
+                console.error('Error loading versions:', error);
+            }
+        }
+        
+        function updateVersionsTable(versions) {
+            const tbody = document.querySelector('#versionsTable tbody');
+            tbody.innerHTML = versions.map(v => `
+                <tr>
+                    <td>V${v.version}</td>
+                    <td>${new Date(v.timestamp).toLocaleString()}</td>
+                    <td>${v.optimizer_type}</td>
+                    <td>${v.n_symbols}</td>
+                    <td>${v.sharpe_ratio.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="loadVersion(${v.version})">加载</button>
+                        <button class="btn btn-sm btn-info" onclick="compareVersion(${v.version})">比较</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function loadVersion(version) {
+            try {
+                const response = await fetch(`/versions/${version}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // 更新表单数据
+                const form = document.getElementById('optimizeForm');
+                form.querySelector('[name="symbols"]').value = data.symbols.join(',');
+                form.querySelector('[name="optimizer_type"]').value = data.optimizer_type;
+                form.querySelector('[name="risk_free_rate"]').value = data.parameters.risk_free_rate;
+                form.querySelector('[name="target_return"]').value = data.parameters.target_return;
+                form.querySelector('[name="lookback_years"]').value = data.parameters.lookback_years;
+                
+                // 更新图表和统计信息
+                const weights_data = {
+                    weights: Object.values(data.weights),
+                    assets: Object.keys(data.weights)
+                };
+                
+                plotWeightsPie(weights_data);
+                updateStats(data.metrics);
+                
+                // 显示版本信息 - 修复插入位置
+                // 首先移除已存在的版本信息
+                const existingVersionInfo = document.querySelector('.version-info');
+                if (existingVersionInfo) {
+                    existingVersionInfo.remove();
+                }
+                
+                // 创建新的版本信息
+                const versionInfo = document.createElement('div');
+                versionInfo.className = 'alert alert-info mt-3 version-info';
+                versionInfo.textContent = `当前显示版本 V${version}`;
+                
+                // 找到正确的插入位置：表单所在的卡片
+                const formContainer = form.closest('.card-body');
+                if (formContainer) {
+                    // 在表单前插入版本信息
+                    formContainer.insertBefore(versionInfo, form);
+                }
+                
+                // 更新版本表格中的高亮
+                const versionRows = document.querySelectorAll('#versionsTable tbody tr');
+                versionRows.forEach(row => {
+                    const versionCell = row.querySelector('td');
+                    if (versionCell && versionCell.textContent === `V${version}`) {
+                        row.classList.add('table-primary');
+                    } else {
+                        row.classList.remove('table-primary');
+                    }
+                });
+                
+                // ��果有分析数据，也更新分析
+                if (data.analysis) {
+                    updateStockAnalysis(data.analysis);
+                }
+                
+            } catch (error) {
+                console.error('Error loading version:', error);
+                alert('加载版本失败: ' + error.message);
+            }
+        }
+        
+        async function compareVersion(version) {
+            try {
+                const latestResponse = await fetch('/versions/latest');
+                const latestData = await latestResponse.json();
+                
+                if (latestData.version === version) {
+                    alert('不能与自身进行比较');
+                    return;
+                }
+                
+                const response = await fetch(`/versions/compare?v1=${version}&v2=${latestData.version}`);
+                const comparison = await response.json();
+                
+                // 显示比较结果
+                const compareContent = document.getElementById('compareContent');
+                compareContent.innerHTML = `
+                    <h6>权重变化</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>股票</th>
+                                <th>变化</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(comparison.weight_changes).map(([symbol, change]) => `
+                                <tr>
+                                    <td>${symbol}</td>
+                                    <td class="${change > 0 ? 'text-success' : 'text-danger'}">
+                                        ${(change * 100).toFixed(2)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <h6 class="mt-4">指标变化</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            ${Object.entries(comparison.metric_changes).map(([metric, change]) => `
+                                <tr>
+                                    <td>${metric}</td>
+                                    <td class="${change > 0 ? 'text-success' : 'text-danger'}">
+                                        ${change.toFixed(4)}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <h6 class="mt-4">参数变化</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            ${Object.entries(comparison.parameter_changes).map(([param, {from, to}]) => `
+                                <tr>
+                                    <td>${param}</td>
+                                    <td>${from} → ${to}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                // 显示模态框
+                new bootstrap.Modal(document.getElementById('compareModal')).show();
+                
+            } catch (error) {
+                console.error('Error comparing versions:', error);
+                alert('版本比较失败: ' + error.message);
+            }
+        }
+        
+        // 页面加载时获取版本列表
+        document.addEventListener('DOMContentLoaded', loadVersions);
     </script>
 </body>
 </html> 

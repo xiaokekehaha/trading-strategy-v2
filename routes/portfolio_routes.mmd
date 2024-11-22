@@ -1,0 +1,43 @@
+graph TD
+    A[开始] --> B[加载配置 load_config]
+
+    %% 主要路由
+    B --> C{路由选择}
+    C -->|GET /| D[index 股票组合页面]
+    C -->|GET /traditional| E[traditional 传统资产页面]
+    C -->|POST /optimize| F[optimize 股票组合优化]
+    C -->|POST /optimize_traditional| G[optimize_traditional 传统资产优化]
+    
+    %% 版本管理路由
+    C -->|GET /versions| H[获取所有优化版本]
+    C -->|GET /versions/:id| I[获取指定版本]
+    C -->|GET /versions/compare| J[比较两个版本]
+    C -->|GET /versions/latest| K[获取最新版本]
+    C -->|GET /progress| L[获取优化进度]
+
+    %% 优化流程详细
+    F --> F1[验证参数]
+    F1 --> F2[获取股票数据]
+    F2 --> F3[执行优化]
+    F3 --> F4[保存优化结果]
+    F4 --> F5[生成调仓建议]
+    F5 --> F6[返回结果]
+
+    %% 传统资产优化流程
+    G --> G1[验证参数]
+    G1 --> G2[加载传统资产数据]
+    G2 --> G3[执行优化]
+    G3 --> G4[保存优化结果]
+    G4 --> G5[计算前端数据]
+    G5 --> G6[返回结果]
+
+    %% 错误处理
+    F1 -->|错误| M[返回400错误]
+    F2 -->|错误| M
+    F3 -->|错误| M
+    G1 -->|错误| M
+    G2 -->|错误| M
+    G3 -->|错误| M
+
+    %% 全局错误处理
+    M --> N[返回错误信息]

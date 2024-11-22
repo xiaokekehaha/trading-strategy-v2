@@ -1,0 +1,33 @@
+{
+  "id": "20241121_161331",
+  "strategy_name": "macd",
+  "parameters": {},
+  "results": {
+    "returns": [
+      {
+        "time": "2024-11-19",
+        "value": 0.0
+      },
+      {
+        "time": "2024-11-20",
+        "value": 0.0
+      }
+    ],
+    "drawdown": [
+      {
+        "time": "2024-11-19",
+        "value": 0.0
+      },
+      {
+        "time": "2024-11-20",
+        "value": 0.0
+      }
+    ],
+    "total_return": 0.0,
+    "annual_return": 0.0,
+    "sharpe_ratio": -Infinity,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0
+  },
+  "created_at": "2024-11-21T16:13:31.677291"
+}

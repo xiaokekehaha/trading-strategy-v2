@@ -1,5 +1,6 @@
 data:
-  path: "data/raw/prices.csv"
+  stock_path: "data/raw/stocks.csv"
+  traditional_path: "data/raw/traditional.csv"
   start_date: "2018-01-01"
   end_date: "2023-12-31"
 
@@ -8,7 +9,18 @@ optimization:
   target_return: 0.10
 
 mcmc:
-  draws: 10000
-  chains: 4
+  draws: 2000
+  chains: 2
   tune: 1000
   random_seed: 42
+
+random_forest:
+  n_estimators: 100
+  max_depth: 5
+  random_state: 42
+
+xgboost:
+  max_depth: 3
+  learning_rate: 0.1
+  n_estimators: 100
+  objective: 'reg:squarederror'

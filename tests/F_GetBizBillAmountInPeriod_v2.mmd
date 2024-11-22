@@ -1,0 +1,49 @@
+graph TD
+    %% 数据源定义
+    A1[kafka_plan_money_category_source] --> B1[plan_money_category_filter_view]
+    A2[hbase_dimension_table] --> B2[plan_money_category_dimension_view]
+    A3[kafka_plan_source] --> B3[plan_filter_view]
+    
+    %% 金额表处理流程
+    B1 --> |维表关联| B2
+    B2 --> C1[plan_money_category_compare_view]
+    C1 --> D1[plan_money_category_group_view]
+    
+    %% 计划表处理流程
+    B3 --> |维表关联| C2[plan_dimension_view]
+    
+    %% 双流处理
+    C2 --> E1[plan_join_view]
+    B1 --> E1
+    E1 --> E2[plan_join_latest_view]
+    E2 --> E3[plan_join_group_view]
+    
+    %% 结果输出
+    D1 --> F[hbase_sink_table]
+    C2 --> F
+    E3 --> F
+    
+    %% 子图：数据聚合处理
+    subgraph 金额表聚合
+        C1 --> |分组计算| D1
+    end
+    
+    subgraph 双流处理
+        E1 --> |取最新| E2
+        E2 --> |分组| E3
+    end
+    
+    %% 子图：结果写入
+    subgraph 结果写入
+        F --> |写入计划金额| G1[计划金额数据]
+        F --> |写入账单月| G2[账单月数据]
+    end
+    
+    %% 样式
+    classDef sourceClass fill:#e1f5fe,stroke:#01579b
+    classDef viewClass fill:#f3e5f5,stroke:#4a148c
+    classDef sinkClass fill:#fce4ec,stroke:#880e4f
+    
+    class A1,A2,A3 sourceClass
+    class B1,B2,B3,C1,C2,D1,E1,E2,E3 viewClass
+    class F,G1,G2 sinkClass

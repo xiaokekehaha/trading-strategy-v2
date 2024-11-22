@@ -60,6 +60,3 @@ def test_with_real_data(real_data, config):
     
     # 测试夏普比率是否合理
     assert np.mean(trace['sharpe']) > -1  # 夏普比率应该在合理范围内
-    
-    # 测试夏普比率是否合理
-    assert np.mean(trace['sharpe']) > -1  # 夏普比率应该在合理范围内

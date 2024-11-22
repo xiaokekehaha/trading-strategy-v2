@@ -270,13 +270,24 @@
             try {
                 startProgress();
                 
+                // 获取表单数据并转换为JSON
+                const formData = new FormData(this);
+                const jsonData = {
+                    target_return: parseFloat(formData.get('target_return')),
+                    risk_free_rate: parseFloat(formData.get('risk_free_rate'))
+                };
+                
                 const response = await fetch('/optimize_traditional', {
                     method: 'POST',
-                    body: new FormData(this)
+                    headers: {
+                        'Content-Type': 'application/json',  // 添加Content-Type头
+                    },
+                    body: JSON.stringify(jsonData)  // 将数据转换为JSON字符串
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();

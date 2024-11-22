@@ -2,20 +2,26 @@ import pandas as pd
 import numpy as np
 import os
 
-def generate_price_data():
+def generate_price_data(data_type: str = 'stock'):
+    """生成示例数据"""
     # 设置随机种子保证可重复性
     np.random.seed(42)
     
     # 生成日期索引
     dates = pd.date_range(start='2018-01-01', end='2023-12-31', freq='B')
     
-    # 模拟5个资产的价格数据
-    assets = ['股票A', '股票B', '债券A', '商品A', 'ETF-A']
-    n_assets = len(assets)
-    
-    # 设置不同资产的参数
-    annual_returns = np.array([0.10, 0.15, 0.05, 0.08, 0.12])  # 年化收益率
-    annual_vols = np.array([0.20, 0.25, 0.08, 0.30, 0.18])     # 年化波动率
+    if data_type == 'traditional':
+        # 传统资产配置
+        assets = ['股票A', '股票B', '债券A', '商品A', 'ETF-A']
+        annual_returns = np.array([0.10, 0.15, 0.05, 0.08, 0.12])
+        annual_vols = np.array([0.20, 0.25, 0.08, 0.30, 0.18])
+        output_path = 'data/raw/traditional.csv'
+    else:
+        # 股票配置
+        assets = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META']
+        annual_returns = np.array([0.15, 0.18, 0.20, 0.25, 0.22])
+        annual_vols = np.array([0.25, 0.28, 0.30, 0.35, 0.32])
+        output_path = 'data/raw/stocks.csv'
     
     # 生成相关系数矩阵
     corr = np.array([
@@ -46,11 +52,9 @@ def generate_price_data():
     # 创建DataFrame
     df = pd.DataFrame(prices, index=dates, columns=assets)
     
-    # 创建目录（如果不存在）
-    os.makedirs('data/raw', exist_ok=True)
-    
     # 保存到CSV
-    df.to_csv('data/raw/prices.csv')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    df.to_csv(output_path)
     
     return df
 

@@ -1,0 +1,29 @@
+{
+  "version": 6,
+  "timestamp": "2024-11-20T23:06:59.873695",
+  "symbols": [
+    "\u80a1\u7968A",
+    "\u80a1\u7968B",
+    "\u503a\u5238A",
+    "\u5546\u54c1A",
+    "ETF-A"
+  ],
+  "weights": {
+    "\u80a1\u7968A": 0.040304440940386786,
+    "\u80a1\u7968B": 0.6707998669550996,
+    "\u503a\u5238A": 0.13761647349955153,
+    "\u5546\u54c1A": 0.11297361201933055,
+    "ETF-A": 0.03830560658563143
+  },
+  "parameters": {
+    "risk_free_rate": 2.0,
+    "target_return": 10.0,
+    "optimizer_type": "bayesian"
+  },
+  "metrics": {
+    "expected_return": 0.1461559368795519,
+    "volatility": 0.20034314778712903,
+    "sharpe_ratio": 0.629699284817051
+  },
+  "optimizer_type": "traditional"
+}
