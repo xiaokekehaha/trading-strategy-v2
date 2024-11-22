@@ -24,7 +24,7 @@ class BaseStrategy(ABC):
         self.last_trade = None
         
     @abstractmethod
-    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+    def generate_signals(self, data: pd.DataFrame) -> np.ndarray:
         """生成交易信号"""
         pass
         
@@ -32,28 +32,37 @@ class BaseStrategy(ABC):
         """执行回测"""
         try:
             logger.info(f"开始执行{self.name}策略回测")
-            signals = self.generate_signals(data)
-            self.returns = data['Close'].pct_change() * signals.shift(1)
+            
+            # 生成信号并转换为pandas Series
+            signals = pd.Series(self.generate_signals(data), index=data.index)
+            
+            # 计算收益率
+            price_returns = data['Close'].pct_change()
+            self.returns = price_returns * signals.shift(1)  # 使用前一天的信号
             
             # 记录交易
+            self.trades = []
+            position = 0
+            last_trade = None
+            
             for i in range(1, len(signals)):
-                if signals[i] != signals[i-1]:  # 信号发生变化
+                if signals.iloc[i] != signals.iloc[i-1]:  # 信号发生变化
                     time = data.index[i]
-                    price = data['Close'][i]
+                    price = data['Close'].iloc[i]
                     
-                    if signals[i] == 1:  # 买入信号
+                    if signals.iloc[i] == 1 and position == 0:  # 买入信号且无持仓
                         trade = Trade(time, 'buy', price)
                         self.trades.append(trade)
-                        self.position = 1
-                        self.last_trade = trade
+                        position = 1
+                        last_trade = trade
                         
-                    elif signals[i] == -1 and self.position == 1:  # 卖出信号且有持仓
+                    elif signals.iloc[i] == -1 and position == 1:  # 卖出信号且有持仓
                         trade = Trade(time, 'sell', price)
-                        if self.last_trade:
-                            trade.profit = (price - self.last_trade.price) * trade.size
+                        if last_trade:
+                            trade.profit = (price - last_trade.price) * trade.size
                         self.trades.append(trade)
-                        self.position = 0
-                        self.last_trade = trade
+                        position = 0
+                        last_trade = trade
             
             # 计算回测指标
             returns = self.returns.dropna()
@@ -61,8 +70,12 @@ class BaseStrategy(ABC):
             
             # 计算收益指标
             total_return = (equity_curve.iloc[-1] / initial_capital - 1) if len(equity_curve) > 0 else 0
-            annual_return = (1 + total_return) ** (252 / len(data)) - 1 if len(data) > 0 else 0
-            volatility = returns.std() * np.sqrt(252) if len(returns) > 1 else 0
+            trading_days = len(data)
+            annual_return = (1 + total_return) ** (252 / trading_days) - 1 if trading_days > 0 else 0
+            
+            # 计算风险指标
+            daily_returns = returns[returns.notna()]
+            volatility = daily_returns.std() * np.sqrt(252) if len(daily_returns) > 1 else 0
             sharpe_ratio = (annual_return - 0.02) / volatility if volatility != 0 else 0
             
             # 计算回撤
@@ -89,10 +102,10 @@ class BaseStrategy(ABC):
             logger.info(f"回测完成: 总收益率={total_return:.2%}, 年化收益率={annual_return:.2%}")
             
             return {
-                'signals': signals,
-                'returns': returns,
-                'equity_curve': equity_curve,
-                'drawdown': drawdown,
+                'signals': signals.values,
+                'returns': returns.values,
+                'equity_curve': equity_curve.values,
+                'drawdown': drawdown.values,
                 'total_return': total_return,
                 'annual_return': annual_return,
                 'volatility': volatility,
@@ -100,7 +113,7 @@ class BaseStrategy(ABC):
                 'max_drawdown': max_drawdown,
                 'win_rate': win_rate,
                 'total_trades': total_trades,
-                'trades': trades_data  # 添加交易记录
+                'trades': trades_data
             }
         except Exception as e:
             logger.error(f"回测执行失败: {str(e)}", exc_info=True)

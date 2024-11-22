@@ -1,80 +1,138 @@
 from typing import Dict, Any
-from pydantic import BaseModel, Field, validator
-
-class MovingAverageParams(BaseModel):
-    short_window: int = Field(default=5, ge=1, le=50)
-    long_window: int = Field(default=20, ge=5, le=200)
-
-    @validator('long_window')
-    def validate_windows(cls, v, values):
-        if 'short_window' in values and v <= values['short_window']:
-            raise ValueError('长期窗口必须大于短期窗口')
-        return v
-
-class BollingerBandsParams(BaseModel):
-    window: int = Field(default=20, ge=5, le=100)
-    num_std: float = Field(default=2.0, ge=0.1, le=5.0)
-
-class MACDParams(BaseModel):
-    fast_period: int = Field(default=12, ge=3, le=50)
-    slow_period: int = Field(default=26, ge=5, le=100)
-    signal_period: int = Field(default=9, ge=3, le=50)
-
-    @validator('slow_period')
-    def validate_periods(cls, v, values):
-        if 'fast_period' in values and v <= values['fast_period']:
-            raise ValueError('慢速周期必须大于快速周期')
-        return v
-
-class LSTMParams(BaseModel):
-    lookback_period: int = Field(default=60, ge=10, le=200)
-    prediction_period: int = Field(default=5, ge=1, le=20)
-    hidden_units: int = Field(default=50, ge=10, le=200)
-    dropout_rate: float = Field(default=0.2, ge=0.0, le=0.5)
-    learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1)
-
-class XGBoostParams(BaseModel):
-    lookback_period: int = Field(default=60, ge=10, le=200)
-    prediction_period: int = Field(default=5, ge=1, le=20)
-    max_depth: int = Field(default=6, ge=3, le=10)
-    learning_rate: float = Field(default=0.1, ge=0.01, le=0.3)
-    n_estimators: int = Field(default=100, ge=50, le=500)
-
-class RandomForestParams(BaseModel):
-    lookback_period: int = Field(default=60, ge=10, le=200)
-    prediction_period: int = Field(default=5, ge=1, le=20)
-    n_estimators: int = Field(default=100, ge=50, le=500)
-    max_depth: int = Field(default=10, ge=3, le=20)
-    min_samples_split: int = Field(default=5, ge=2, le=20)
-
-class SVMParams(BaseModel):
-    lookback_period: int = Field(default=60, ge=10, le=200)
-    prediction_period: int = Field(default=5, ge=1, le=20)
-    kernel: str = Field(default='rbf')
-    C: float = Field(default=1.0, ge=0.1, le=10.0)
-    gamma: str = Field(default='scale')
-
-    @validator('kernel')
-    def validate_kernel(cls, v):
-        if v not in ['linear', 'rbf', 'poly', 'sigmoid']:
-            raise ValueError('不支持的核函数类型')
-        return v
-
-STRATEGY_VALIDATORS = {
-    'moving_average': MovingAverageParams,
-    'bollinger_bands': BollingerBandsParams,
-    'macd': MACDParams,
-    'lstm': LSTMParams,
-    'xgboost': XGBoostParams,
-    'random_forest': RandomForestParams,
-    'svm': SVMParams
-}
 
 def validate_strategy_params(strategy_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """验证策略参数"""
-    if strategy_name not in STRATEGY_VALIDATORS:
-        raise ValueError(f'不支持的策略类型: {strategy_name}')
+    
+    # 定义每个策略的参数配置
+    STRATEGY_PARAMS = {
+        'moving_average': {
+            'required': ['short_window', 'long_window'],
+            'optional': [],
+            'defaults': {
+                'short_window': 5,
+                'long_window': 20
+            },
+            'validators': {
+                'short_window': lambda x: 2 <= x <= 50,
+                'long_window': lambda x: 5 <= x <= 200
+            }
+        },
+        'bollinger_bands': {
+            'required': ['window', 'num_std'],
+            'optional': [],
+            'defaults': {
+                'window': 20,
+                'num_std': 2.0
+            },
+            'validators': {
+                'window': lambda x: 5 <= x <= 100,
+                'num_std': lambda x: 0.1 <= x <= 5.0
+            }
+        },
+        'macd': {
+            'required': ['fast_period', 'slow_period', 'signal_period'],
+            'optional': [],
+            'defaults': {
+                'fast_period': 12,
+                'slow_period': 26,
+                'signal_period': 9
+            },
+            'validators': {
+                'fast_period': lambda x: 3 <= x <= 50,
+                'slow_period': lambda x: 5 <= x <= 100,
+                'signal_period': lambda x: 3 <= x <= 50
+            }
+        },
+        'svm': {
+            'required': ['lookback_period', 'C', 'gamma'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'C': 1.0,
+                'gamma': 0.1
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'C': lambda x: 0.1 <= x <= 10.0,
+                'gamma': lambda x: 0.001 <= x <= 1.0
+            }
+        },
+        'random_forest': {
+            'required': ['lookback_period', 'n_estimators', 'max_depth'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'n_estimators': 100,
+                'max_depth': 10
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'n_estimators': lambda x: 10 <= x <= 500,
+                'max_depth': lambda x: 3 <= x <= 20
+            }
+        },
+        'xgboost': {
+            'required': ['lookback_period', 'n_estimators', 'learning_rate', 'max_depth'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'n_estimators': 100,
+                'learning_rate': 0.1,
+                'max_depth': 6
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'n_estimators': lambda x: 10 <= x <= 500,
+                'learning_rate': lambda x: 0.001 <= x <= 1.0,
+                'max_depth': lambda x: 3 <= x <= 10
+            }
+        },
+        'lstm': {
+            'required': ['lookback_period', 'units', 'dropout', 'epochs', 'batch_size'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'units': 50,
+                'dropout': 0.2,
+                'epochs': 100,
+                'batch_size': 32
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'units': lambda x: 10 <= x <= 200,
+                'dropout': lambda x: 0.1 <= x <= 0.5,
+                'epochs': lambda x: 10 <= x <= 500,
+                'batch_size': lambda x: 8 <= x <= 128
+            }
+        }
+    }
+    
+    if strategy_name not in STRATEGY_PARAMS:
+        raise ValueError(f"不支持的策略类型: {strategy_name}")
         
-    validator = STRATEGY_VALIDATORS[strategy_name]
-    validated = validator(**params)
-    return validated.dict() 
+    config = STRATEGY_PARAMS[strategy_name]
+    validated_params = {}
+    
+    # 检查必需参数
+    for param in config['required']:
+        if param not in params:
+            # 使用默认值
+            validated_params[param] = config['defaults'][param]
+        else:
+            value = params[param]
+            # 验证参数值
+            if not config['validators'][param](value):
+                raise ValueError(f"参数 {param} 的值 {value} 超出有效范围")
+            validated_params[param] = value
+            
+    # 添加可选参数
+    for param in config['optional']:
+        if param in params:
+            value = params[param]
+            if not config['validators'][param](value):
+                raise ValueError(f"参数 {param} 的值 {value} 超出有效范围")
+            validated_params[param] = value
+        elif param in config['defaults']:
+            validated_params[param] = config['defaults'][param]
+            
+    return validated_params 
