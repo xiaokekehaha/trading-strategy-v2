@@ -104,6 +104,48 @@ def validate_strategy_params(strategy_name: str, params: Dict[str, Any]) -> Dict
                 'epochs': lambda x: 10 <= x <= 500,
                 'batch_size': lambda x: 8 <= x <= 128
             }
+        },
+        'mlp': {
+            'required': ['lookback_period', 'hidden_dims', 'learning_rate'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'hidden_dims': 64,
+                'learning_rate': 0.001
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'hidden_dims': lambda x: 32 <= x <= 256,
+                'learning_rate': lambda x: 0.0001 <= x <= 0.01
+            }
+        },
+        'lstm_mlp': {
+            'required': ['lookback_period', 'hidden_dim', 'num_layers', 'learning_rate'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'hidden_dim': 64,
+                'num_layers': 2,
+                'learning_rate': 0.001
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'hidden_dim': lambda x: 32 <= x <= 256,
+                'num_layers': lambda x: 1 <= x <= 4,
+                'learning_rate': lambda x: 0.0001 <= x <= 0.01
+            }
+        },
+        'cnn_mlp': {
+            'required': ['lookback_period', 'learning_rate'],
+            'optional': [],
+            'defaults': {
+                'lookback_period': 20,
+                'learning_rate': 0.001
+            },
+            'validators': {
+                'lookback_period': lambda x: 5 <= x <= 100,
+                'learning_rate': lambda x: 0.0001 <= x <= 0.01
+            }
         }
     }
     

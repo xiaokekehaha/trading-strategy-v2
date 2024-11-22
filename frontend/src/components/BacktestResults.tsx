@@ -2,6 +2,7 @@ import React from 'react';
 import { BacktestResult } from '@/types';
 import { PortfolioCharts } from './PortfolioCharts';
 import { StrategyMetrics } from './StrategyMetrics';
+import DeepLearningMetrics from './DeepLearningMetrics';
 
 interface BacktestResultsProps {
     result: BacktestResult;
@@ -12,6 +13,8 @@ export const BacktestResults: React.FC<BacktestResultsProps> = ({
     result,
     strategyName
 }) => {
+    const isDeepLearning = ['mlp', 'lstm_mlp', 'cnn_mlp'].includes(strategyName);
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
@@ -55,6 +58,10 @@ export const BacktestResults: React.FC<BacktestResultsProps> = ({
                     />
                 </div>
             </div>
+            
+            {isDeepLearning && result.training_history && (
+                <DeepLearningMetrics trainingHistory={result.training_history} />
+            )}
         </div>
     );
 };

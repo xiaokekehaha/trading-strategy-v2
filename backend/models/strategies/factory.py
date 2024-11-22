@@ -7,6 +7,9 @@ from .ml.svm_strategy import SVMStrategy
 from .ml.random_forest_strategy import RandomForestStrategy
 from .ml.xgboost_strategy import XGBoostStrategy
 from .ml.lstm_strategy import LSTMStrategy
+from .ml.deep_learning.mlp_strategy import MLPStrategy
+from .ml.deep_learning.lstm_mlp_strategy import LSTMMlPStrategy
+from .ml.deep_learning.cnn_mlp_strategy import CNNMLPStrategy
 from .validators import validate_strategy_params
 
 class StrategyFactory:
@@ -18,6 +21,9 @@ class StrategyFactory:
         'random_forest': RandomForestStrategy,
         'xgboost': XGBoostStrategy,
         'lstm': LSTMStrategy,
+        'mlp': MLPStrategy,
+        'lstm_mlp': LSTMMlPStrategy,
+        'cnn_mlp': CNNMLPStrategy,
     }
     
     @classmethod
@@ -42,5 +48,8 @@ class StrategyFactory:
             'svm': 'SVM策略',
             'random_forest': '随机森林策略',
             'xgboost': 'XGBoost策略',
-            'lstm': 'LSTM策略'
+            'lstm': 'LSTM策略',
+            'mlp': 'MLP深度神经网络',
+            'lstm_mlp': 'LSTM+MLP混合网络',
+            'cnn_mlp': 'CNN+MLP混合网络'
         }

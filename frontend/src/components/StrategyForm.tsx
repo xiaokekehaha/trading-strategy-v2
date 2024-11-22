@@ -207,6 +207,84 @@ const STRATEGY_CONFIGS = {
         default: 0.2
       }
     }
+  },
+  'mlp': {
+    name: 'MLP深度神经网络',
+    params: {
+      lookback_period: {
+        label: '回看周期',
+        min: 5,
+        max: 100,
+        step: 1,
+        default: 20
+      },
+      hidden_dims: {
+        label: '隐藏层维度',
+        min: 32,
+        max: 256,
+        step: 32,
+        default: 64
+      },
+      learning_rate: {
+        label: '学习率',
+        min: 0.0001,
+        max: 0.01,
+        step: 0.0001,
+        default: 0.001
+      }
+    }
+  },
+  'lstm_mlp': {
+    name: 'LSTM+MLP混合网络',
+    params: {
+      lookback_period: {
+        label: '回看周期',
+        min: 5,
+        max: 100,
+        step: 1,
+        default: 20
+      },
+      hidden_dim: {
+        label: 'LSTM隐藏维度',
+        min: 32,
+        max: 256,
+        step: 32,
+        default: 64
+      },
+      num_layers: {
+        label: 'LSTM层数',
+        min: 1,
+        max: 4,
+        step: 1,
+        default: 2
+      },
+      learning_rate: {
+        label: '学习率',
+        min: 0.0001,
+        max: 0.01,
+        step: 0.0001,
+        default: 0.001
+      }
+    }
+  },
+  'cnn_mlp': {
+    name: 'CNN+MLP混合网络',
+    params: {
+      lookback_period: {
+        label: '回看周期',
+        min: 5,
+        max: 100,
+        step: 1,
+        default: 20
+      },
+      learning_rate: {
+        label: '学习率',
+        min: 0.0001,
+        max: 0.01,
+        step: 0.0001,
+        default: 0.001
+      }
+    }
   }
 } as const;
 
@@ -290,13 +368,18 @@ const StrategyForm = ({ onSubmit, isLoading, onStrategyChange }: Props) => {
 
   const handleParamChange = (paramName: string, value: string) => {
     const newValue = parseFloat(value);
-    const config = STRATEGY_CONFIGS[strategy].params[paramName];
+    const config = STRATEGY_CONFIGS[strategy].params[paramName as keyof typeof STRATEGY_CONFIGS[typeof strategy]['params']];
     
     if (!isNaN(newValue) && newValue >= config.min && newValue <= config.max) {
-      setParams(prev => ({
-        ...prev,
-        [paramName]: newValue
-      }));
+        // 对于需要整数的参数，进行取整
+        const finalValue = ['window', 'lookback_period', 'n_estimators', 'max_depth', 'units', 'batch_size'].includes(paramName)
+            ? Math.round(newValue)
+            : newValue;
+            
+        setParams(prev => ({
+            ...prev,
+            [paramName]: finalValue
+        }));
     }
   };
 
