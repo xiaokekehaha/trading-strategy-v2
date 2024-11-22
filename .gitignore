@@ -57,3 +57,11 @@ ENV/
 
 # Local Development
 .env
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# 特别指定这个大文件
+frontend/node_modules/@next/swc-darwin-x64/next-swc.darwin-x64.node
+*.node
