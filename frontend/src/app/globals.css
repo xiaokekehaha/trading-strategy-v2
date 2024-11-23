@@ -1,3 +1,88 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* 价格闪烁动画 */
+@keyframes priceUp {
+  from { background-color: rgba(16, 185, 129, 0.1); }
+  to { background-color: transparent; }
+}
+
+@keyframes priceDown {
+  from { background-color: rgba(239, 68, 68, 0.1); }
+  to { background-color: transparent; }
+}
+
+.price-up {
+  animation: priceUp 1s ease-out;
+}
+
+.price-down {
+  animation: priceDown 1s ease-out;
+}
+
+/* 加载动画 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* 暗色主题 */
+.dark {
+  @apply bg-gray-900 text-gray-100;
+}
+
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+
+.dark .text-gray-900 {
+  @apply text-gray-100;
+}
+
+.dark .text-gray-600 {
+  @apply text-gray-400;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  @apply hover:bg-gray-700;
+}
+
+/* 工具提示 */
+.tooltip {
+  @apply relative;
+}
+
+.tooltip:before {
+  @apply content-[attr(data-tip)] absolute px-2 py-1 -top-8 left-1/2 transform -translate-x-1/2
+         bg-gray-900 text-white text-xs rounded opacity-0 transition-opacity duration-200;
+}
+
+.tooltip:hover:before {
+  @apply opacity-100;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+} 

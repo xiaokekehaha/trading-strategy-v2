@@ -1,26 +1,36 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional
+from datetime import datetime
+from ..services.stock_service import StockService
 
-router = APIRouter(prefix="/stocks", tags=["stocks"])
+router = APIRouter()
+stock_service = StockService()
 
-@router.get("/{symbol}/price")
-async def get_stock_price(
-    symbol: str,
-    start_date: str,
-    end_date: Optional[str] = None
-):
-    """获取股票价格数据"""
+@router.get("/stock/{symbol}/info")
+async def get_stock_info(symbol: str):
+    """获取股票基本信息"""
     try:
-        return {
-            "message": f"Stock price endpoint for {symbol}",
-            "symbol": symbol,
-            "start_date": start_date,
-            "end_date": end_date
-        }
+        return stock_service.get_stock_info(symbol)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{symbol}/indicators")
-async def get_stock_indicators(symbol: str):
-    """获取股票技术指标"""
-    return {"message": f"Stock indicators for {symbol}"} 
+@router.get("/stock/{symbol}/kline")
+async def get_kline_data(
+    symbol: str,
+    timeframe: str = "1d",
+    start: Optional[str] = None,
+    end: Optional[str] = None
+):
+    """获取K线数据"""
+    try:
+        return stock_service.get_kline_data(symbol, timeframe, start, end)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stock/search")
+async def search_stocks(query: str):
+    """搜索股票"""
+    try:
+        return stock_service.search_stocks(query)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 

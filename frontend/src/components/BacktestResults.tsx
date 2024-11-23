@@ -1,7 +1,7 @@
 import React from 'react';
-import { BacktestResult } from '@/types';
+import { BacktestResult } from '@/types/backtest';
 import { PortfolioCharts } from './PortfolioCharts';
-import { StrategyMetrics } from './StrategyMetrics';
+import MetricsDetail from './MetricsDetail';
 import DeepLearningMetrics from './DeepLearningMetrics';
 
 interface BacktestResultsProps {
@@ -30,23 +30,25 @@ export const BacktestResults: React.FC<BacktestResultsProps> = ({
                         annual_return: result.annual_return,
                         sharpe_ratio: result.sharpe_ratio,
                         max_drawdown: result.max_drawdown,
-                        win_rate: result.win_rate
+                        win_rate: result.win_rate,
+                        total_trades: result.total_trades,
+                        volatility: result.volatility
                     }}
                 />
             </div>
             
-            <StrategyMetrics metrics={result} />
+            <MetricsDetail metrics={result} />
             
             <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold mb-4">交易统计</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard
                         title="总交易次数"
-                        value={result.returns.length.toString()}
+                        value={result.total_trades.toString()}
                     />
                     <StatCard
                         title="平均持仓时间"
-                        value={`${Math.round(result.returns.length / 2)} 天`}
+                        value={`${Math.round(result.trades.length / 2)} 天`}
                     />
                     <StatCard
                         title="盈利交易"

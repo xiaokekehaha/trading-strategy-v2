@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import api_router
+from backend.routes.stock_routes import router as stock_router
+from backend.routes.backtest_routes import router as backtest_router
 import logging
 
 # 配置日志
@@ -15,14 +16,15 @@ app = FastAPI(title="量化交易分析平台")
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 修改路由注册方式
-app.include_router(api_router, prefix="")  # 移除前缀
+# 注册路由
+app.include_router(stock_router, prefix="/api")
+app.include_router(backtest_router, prefix="/api")
 
 @app.get("/")
 async def root():
